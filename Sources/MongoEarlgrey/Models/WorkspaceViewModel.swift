@@ -36,6 +36,8 @@ public final class CollectionTabState: Identifiable, ObservableObject {
 
     @Published public var pageLimit: Int = 50
     @Published public var pageSkip: Int = 0
+    @Published public var resultRevision: Int = 0
+    public var activeQueryGeneration: Int = 0
 
     // Nested column & inline row expansion state
     @Published public var expandedColumnPaths: Set<String> = [] {
@@ -759,6 +761,9 @@ public final class WorkspaceViewModel: ObservableObject {
             return
         }
 
+        tab.activeQueryGeneration &+= 1
+        let generation = tab.activeQueryGeneration
+
         // Automatically reset pageSkip if query text changed since the previous execution
         if !tab.lastExecutedQueryText.isEmpty && tab.queryText != tab.lastExecutedQueryText {
             tab.pageSkip = 0
@@ -779,10 +784,14 @@ public final class WorkspaceViewModel: ObservableObject {
                 fallbackSkip: tab.pageSkip
             )
 
+            guard tab.activeQueryGeneration == generation else { return }
+
             tab.lastExecutedQueryText = executedQuery
             tab.recordQueryHistory(executedQuery)
 
+            tab.sortColumnPath = nil
             tab.documents = result.documents
+            tab.resultRevision &+= 1
             tab.totalCount = result.totalCount
             tab.executionTimeMs = result.executionTimeMs
             tab.statusText = result.statusText
@@ -799,6 +808,7 @@ public final class WorkspaceViewModel: ObservableObject {
                 }
             }
         } catch {
+            guard tab.activeQueryGeneration == generation else { return }
             tab.isLoading = false
             tab.errorMessage = error.localizedDescription
         }

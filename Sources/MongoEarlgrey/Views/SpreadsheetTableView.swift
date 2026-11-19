@@ -81,8 +81,9 @@ public struct SpreadsheetTableView: View {
                             tableHeaderView(columns: columns, fillerWidth: fillerWidth)
                         }
                     }
-                    .frame(minWidth: geo.size.width, alignment: .topLeading)
+                    .frame(minWidth: geo.size.width, minHeight: geo.size.height, alignment: .topLeading)
                 }
+                .id(tab.resultRevision)
                 .background(Color(nsColor: .textBackgroundColor))
             }
             .popover(item: $uiState.inspectedCellPopover) { item in
@@ -117,6 +118,7 @@ public struct SpreadsheetTableView: View {
             if tab.queryText != "db.getCollection(\"\(tab.collection)\").find({})" {
                 Button("Reset to Default Query") {
                     tab.queryText = "db.getCollection(\"\(tab.collection)\").find({})"
+                    tab.pageSkip = 0
                     Task { await workspace.runQuery(for: tab) }
                 }
                 .buttonStyle(.borderedProminent)

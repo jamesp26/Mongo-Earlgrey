@@ -52,6 +52,8 @@ public actor MongoWireConnection {
     private var nextRequestId: Int32 = 1
     private(set) public var isConnected: Bool = false
     private(set) public var serverHello: BSONDocument?
+    private var isCommandInFlight: Bool = false
+    private var commandWaiters: [CheckedContinuation<Void, Never>] = []
 
     public init(host: String, port: UInt16, useTLS: Bool, tlsAllowInvalidCertificates: Bool = false) {
         self.host = host
@@ -237,8 +239,30 @@ public actor MongoWireConnection {
         }
     }
 
+    private func acquireCommandSlot() async {
+        if !isCommandInFlight {
+            isCommandInFlight = true
+            return
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            commandWaiters.append(continuation)
+        }
+    }
+
+    private func releaseCommandSlot() {
+        if !commandWaiters.isEmpty {
+            let next = commandWaiters.removeFirst()
+            next.resume()
+        } else {
+            isCommandInFlight = false
+        }
+    }
+
     /// Send an OP_MSG (opcode 2013) command and await the decoded BSONDocument response
     public func sendCommand(_ command: BSONDocument, timeout: TimeInterval = 30.0) async throws -> BSONDocument {
+        await acquireCommandSlot()
+        defer { releaseCommandSlot() }
+
         guard let conn = connection, isConnected else {
             throw MongoDriverError.notConnected
         }
