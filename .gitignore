@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Swift / Build Artifacts
+.build/
+.swiftpm/
+MongoEarlgrey.app/
+
+# IDE & Editor Settings
+.vscode/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
