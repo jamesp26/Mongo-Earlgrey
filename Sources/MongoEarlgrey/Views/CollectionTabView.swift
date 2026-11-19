@@ -252,6 +252,7 @@ public struct CollectionTabView: View {
                 )
 
                 Button {
+                    tab.pageSkip = 0
                     Task {
                         await workspace.runQuery(for: tab)
                     }
